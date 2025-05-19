@@ -1,0 +1,15 @@
+langchain
+langchain_ollama
+langchain_core
+langchain_chroma
+langgraph
+langfuse
+pandas
+pydantic
+fastapi
+uvicorn
+chromadb
+python-dotenv
+copilotkit
+websockets
+langchain_community

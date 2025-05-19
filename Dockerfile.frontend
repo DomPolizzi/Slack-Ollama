@@ -1,0 +1,33 @@
+FROM node:18-alpine
+
+WORKDIR /app
+
+# Install dependencies
+COPY frontend/package.json frontend/package-lock.json* ./
+RUN npm ci
+
+# Copy package.json and package-lock.json
+COPY frontend/package.json frontend/package-lock.json* ./
+
+# Copy the rest of the frontend files, excluding .next
+COPY frontend/next.config.js ./
+COPY frontend/postcss.config.js ./
+COPY frontend/tailwind.config.js ./
+COPY frontend/tsconfig.json ./
+COPY frontend/public ./public
+COPY frontend/src ./src
+
+# Build the application
+RUN npm run build
+
+# Create .next directory if it doesn't exist
+RUN mkdir -p .next
+
+# Create BUILD_ID file
+RUN touch .next/BUILD_ID
+
+# Expose the port
+EXPOSE 3000
+
+# Start the application
+CMD ["node", ".next/standalone/server.js"]

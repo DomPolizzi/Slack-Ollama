@@ -1,93 +1,163 @@
-# Local-Ollama-Agent-Copilotkit
+# LLM Agent with LangGraph, Langfuse, Ollama, and ChromaDB
 
+This project implements an LLM Agent using LangGraph for orchestration, Langfuse for observability, Ollama for local LLM inference, and ChromaDB for vector storage.
 
+## Features
 
-## Getting started
+- **LangGraph**: Orchestrates the agent's workflow with a state graph
+- **Langfuse**: Provides observability and analytics for the agent
+- **Ollama**: Runs LLMs locally for inference and embeddings
+- **ChromaDB**: Stores document embeddings for retrieval
+- **Modern Frontend**: Provides a responsive web interface for interacting with the agent
 
-To make it easy for you to get started with GitLab, here's a list of recommended next steps.
+## Prerequisites
 
-Already a pro? Just edit this README.md and make it your own. Want to make it easy? [Use the template at the bottom](#editing-this-readme)!
-
-## Add your files
-
-- [ ] [Create](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#create-a-file) or [upload](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#upload-a-file) files
-- [ ] [Add files using the command line](https://docs.gitlab.com/topics/git/add_files/#add-files-to-a-git-repository) or push an existing Git repository with the following command:
-
-```
-cd existing_repo
-git remote add origin https://gitlab.com/void-realm-solutions/local-ollama-agent-copilotkit.git
-git branch -M main
-git push -uf origin main
-```
-
-## Integrate with your tools
-
-- [ ] [Set up project integrations](https://gitlab.com/void-realm-solutions/local-ollama-agent-copilotkit/-/settings/integrations)
-
-## Collaborate with your team
-
-- [ ] [Invite team members and collaborators](https://docs.gitlab.com/ee/user/project/members/)
-- [ ] [Create a new merge request](https://docs.gitlab.com/ee/user/project/merge_requests/creating_merge_requests.html)
-- [ ] [Automatically close issues from merge requests](https://docs.gitlab.com/ee/user/project/issues/managing_issues.html#closing-issues-automatically)
-- [ ] [Enable merge request approvals](https://docs.gitlab.com/ee/user/project/merge_requests/approvals/)
-- [ ] [Set auto-merge](https://docs.gitlab.com/user/project/merge_requests/auto_merge/)
-
-## Test and Deploy
-
-Use the built-in continuous integration in GitLab.
-
-- [ ] [Get started with GitLab CI/CD](https://docs.gitlab.com/ee/ci/quick_start/)
-- [ ] [Analyze your code for known vulnerabilities with Static Application Security Testing (SAST)](https://docs.gitlab.com/ee/user/application_security/sast/)
-- [ ] [Deploy to Kubernetes, Amazon EC2, or Amazon ECS using Auto Deploy](https://docs.gitlab.com/ee/topics/autodevops/requirements.html)
-- [ ] [Use pull-based deployments for improved Kubernetes management](https://docs.gitlab.com/ee/user/clusters/agent/)
-- [ ] [Set up protected environments](https://docs.gitlab.com/ee/ci/environments/protected_environments.html)
-
-***
-
-# Editing this README
-
-When you're ready to make this README your own, just edit this file and use the handy template below (or feel free to structure it however you want - this is just a starting point!). Thanks to [makeareadme.com](https://www.makeareadme.com/) for this template.
-
-## Suggestions for a good README
-
-Every project is different, so consider which of these sections apply to yours. The sections used in the template are suggestions for most open source projects. Also keep in mind that while a README can be too long and detailed, too long is better than too short. If you think your README is too long, consider utilizing another form of documentation rather than cutting out information.
-
-## Name
-Choose a self-explaining name for your project.
-
-## Description
-Let people know what your project can do specifically. Provide context and add a link to any reference visitors might be unfamiliar with. A list of Features or a Background subsection can also be added here. If there are alternatives to your project, this is a good place to list differentiating factors.
-
-## Badges
-On some READMEs, you may see small images that convey metadata, such as whether or not all the tests are passing for the project. You can use Shields to add some to your README. Many services also have instructions for adding a badge.
-
-## Visuals
-Depending on what you are making, it can be a good idea to include screenshots or even a video (you'll frequently see GIFs rather than actual videos). Tools like ttygif can help, but check out Asciinema for a more sophisticated method.
+- Python 3.9+
+- [Ollama](https://ollama.ai/) installed and running locally
+- Required Python packages (see `requirements.txt`)
 
 ## Installation
-Within a particular ecosystem, there may be a common way of installing things, such as using Yarn, NuGet, or Homebrew. However, consider the possibility that whoever is reading your README is a novice and would like more guidance. Listing specific steps helps remove ambiguity and gets people to using your project as quickly as possible. If it only runs in a specific context like a particular programming language version or operating system or has dependencies that have to be installed manually, also add a Requirements subsection.
+
+1. Clone this repository:
+   ```bash
+   git clone <repository-url>
+   cd llm-agent
+   ```
+
+2. Install the required dependencies:
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+3. Make sure Ollama is running and has the required models:
+   ```bash
+   # Start Ollama (if not already running)
+   ollama serve
+
+   # In another terminal, pull the required models
+   ollama pull llama3.2
+   ollama pull nomic-embed-text-v1.5
+   ```
+
+4. Configure environment variables:
+   - Copy `.env.example` to `.env` (or use the existing `.env` file)
+   - Update the values as needed
 
 ## Usage
-Use examples liberally, and show the expected output if you can. It's helpful to have inline the smallest example of usage that you can demonstrate, while providing links to more sophisticated examples if they are too long to reasonably include in the README.
 
-## Support
-Tell people where they can go to for help. It can be any combination of an issue tracker, a chat room, an email address, etc.
+### Running with Docker Compose
 
-## Roadmap
-If you have ideas for releases in the future, it is a good idea to list them in the README.
+The easiest way to run the entire stack is with Docker Compose:
 
-## Contributing
-State if you are open to contributions and what your requirements are for accepting them.
+```bash
+docker-compose up -d
+```
 
-For people who want to make changes to your project, it's helpful to have some documentation on how to get started. Perhaps there is a script that they should run or some environment variables that they need to set. Make these steps explicit. These instructions could also be useful to your future self.
+This will start:
+- Ollama service for LLM inference
+- ChromaDB service for vector storage
+- Backend API service
+- Frontend service
 
-You can also document commands to lint the code or run tests. These steps help to ensure high code quality and reduce the likelihood that the changes inadvertently break something. Having instructions for running tests is especially helpful if it requires external setup, such as starting a Selenium server for testing in a browser.
+Then open your browser to http://localhost:3000 to access the frontend.
 
-## Authors and acknowledgment
-Show your appreciation to those who have contributed to the project.
+### Running Locally
+
+If you prefer to run the components individually:
+
+1. Run the API server:
+   ```bash
+   cd app
+   uvicorn api:app --reload
+   ```
+
+2. In another terminal, run the frontend:
+   ```bash
+   cd frontend
+   npm install
+   npm run dev
+   ```
+
+3. Open your browser to http://localhost:3000
+
+### CLI Mode
+
+You can also run the agent in CLI mode:
+
+```bash
+cd app
+python main.py
+```
+
+The application will prompt you to load documents into the vector store (optional) and then you can start asking questions to the agent.
+
+## Project Structure
+
+```
+llm-agent/
+├── app/                  # Backend application
+│   ├── agent.py          # LangGraph agent implementation
+│   ├── config.py         # Configuration management
+│   ├── document_loader.py # Document loading utilities
+│   ├── main.py           # CLI entry point
+│   └── api.py            # FastAPI server
+├── frontend/             # Web frontend
+│   ├── src/              # Source code
+│   │   ├── app/          # Next.js app directory
+│   │   └── components/   # React components
+│   ├── public/           # Static assets
+│   ├── package.json      # Frontend dependencies
+│   └── tsconfig.json     # TypeScript configuration
+├── .env                  # Environment variables
+├── docker-compose.yml    # Docker Compose configuration
+├── Dockerfile.api        # Dockerfile for the API
+├── Dockerfile.frontend   # Dockerfile for the frontend
+└── requirements.txt      # Python dependencies
+```
+
+## Configuration
+
+The agent can be configured using environment variables or by modifying the `.env` file:
+
+- **Langfuse Configuration**:
+  - `LANGFUSE_PUBLIC_KEY`: Your Langfuse public key
+  - `LANGFUSE_SECRET_KEY`: Your Langfuse secret key
+  - `LANGFUSE_HOST`: Langfuse host URL
+
+- **Ollama Configuration**:
+  - `OLLAMA_BASE_URL`: URL for the Ollama API (default: http://localhost:11434)
+  - `OLLAMA_DOCKER_URL`: URL for Ollama running in Docker (default: http://ollama:11434)
+  - `OLLAMA_LLM_MODEL`: Model to use for LLM inference (default: llama3.2)
+  - `OLLAMA_EMBEDDING_MODEL`: Model to use for embeddings (default: nomic-embed-text-v1.5)
+
+- **ChromaDB Configuration**:
+  - `CHROMA_PERSIST_DIRECTORY`: Directory to persist ChromaDB (default: ./chroma_db)
+  - `CHROMA_COLLECTION_NAME`: Name of the ChromaDB collection (default: llm_agent)
+  - `CHROMA_HOST`: Host for ChromaDB running in Docker (default: chroma)
+  - `CHROMA_PORT`: Port for ChromaDB running in Docker (default: 8000)
+
+## How It Works
+
+1. The agent uses a LangGraph workflow with the following nodes:
+   - `retrieve`: Retrieves relevant documents from ChromaDB
+   - `think`: Processes the retrieved information and decides on the next action
+   - `respond`: Generates a response to the user's query
+
+2. The workflow is orchestrated by a state machine that transitions between these nodes based on the agent's decisions.
+
+3. Langfuse is used to log events and track the agent's performance.
+
+4. ChromaDB stores document embeddings for retrieval.
+
+## Extending the Agent
+
+To extend the agent with new capabilities:
+
+1. Add new nodes to the LangGraph workflow in `agent.py`
+2. Update the state schema to include new state variables
+3. Add new edges to the graph to connect the new nodes
+4. Update the router function to route to the new nodes
 
 ## License
-For open source projects, say how it is licensed.
 
-## Project status
-If you have run out of energy or time for your project, put a note at the top of the README saying that development has slowed down or stopped completely. Someone may choose to fork your project or volunteer to step in as a maintainer or owner, allowing your project to keep going. You can also make an explicit request for maintainers.
+[MIT License](LICENSE)
