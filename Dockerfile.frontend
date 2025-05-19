@@ -1,15 +1,14 @@
-FROM node:18-alpine
+FROM node:18-alpine AS builder
 
 WORKDIR /app
 
-# Install dependencies
+# Copy package files
 COPY frontend/package.json frontend/package-lock.json* ./
+
+# Install dependencies
 RUN npm ci
 
-# Copy package.json and package-lock.json
-COPY frontend/package.json frontend/package-lock.json* ./
-
-# Copy the rest of the frontend files, excluding .next
+# Copy the rest of the frontend files
 COPY frontend/next.config.js ./
 COPY frontend/postcss.config.js ./
 COPY frontend/tailwind.config.js ./
@@ -20,14 +19,21 @@ COPY frontend/src ./src
 # Build the application
 RUN npm run build
 
-# Create .next directory if it doesn't exist
-RUN mkdir -p .next
+# Production image, copy all the files and run next
+FROM node:18-alpine AS runner
 
-# Create BUILD_ID file
-RUN touch .next/BUILD_ID
+WORKDIR /app
+
+# Copy necessary files from the builder stage
+COPY --from=builder /app/.next/standalone ./
+COPY --from=builder /app/.next/static ./.next/static
+COPY --from=builder /app/public ./public
 
 # Expose the port
 EXPOSE 3000
 
+# Set hostname to expose the server on all network interfaces
+ENV HOSTNAME "0.0.0.0"
+
 # Start the application
-CMD ["node", ".next/standalone/server.js"]
+CMD ["node", "server.js"]

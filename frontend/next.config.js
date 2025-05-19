@@ -7,7 +7,7 @@ const nextConfig = {
     NEXT_PUBLIC_WS_URL: process.env.NEXT_PUBLIC_WS_URL || 'ws://api:8080/ws',
     BUILD_ID: process.env.BUILD_ID || 'local',
   },
-  output: 'standalone',
+  output: 'standalone'
 }
 
 module.exports = nextConfig

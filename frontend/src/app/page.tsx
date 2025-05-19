@@ -14,8 +14,15 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'
-  const wsUrl = process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:8080/ws'
+  // Define API URLs with client-side detection
+  // This ensures that the client browser uses localhost and not Docker container names
+  const apiUrl = typeof window !== 'undefined' 
+    ? (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080')
+    : 'http://api:8080'
+    
+  const wsUrl = typeof window !== 'undefined'
+    ? (process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:8080/ws')
+    : 'ws://api:8080/ws'
   
   // WebSocket connection
   const [socket, setSocket] = useState<WebSocket | null>(null)
