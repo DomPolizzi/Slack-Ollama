@@ -30,11 +30,16 @@ app = FastAPI(
 # Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Allow all origins
+    allow_origins=["*"],  # Allow all origins including localhost
     allow_credentials=True,
     allow_methods=["*"],  # Allow all methods
     allow_headers=["*"],  # Allow all headers
+    expose_headers=["*"]  # Expose all headers
 )
+
+# Print app setup info
+print(f"FastAPI app initialized with CORS: allow_origins=['*']")
+print(f"WebSocket endpoint available at: /ws")
 
 # Define request and response models
 class QueryRequest(BaseModel):
@@ -125,30 +130,53 @@ async def websocket_endpoint(websocket: WebSocket):
                 query = message.get("query", "")
                 chat_history = message.get("chat_history", [])
                 
-                # Run the agent
-                result = run_agent(query, chat_history)
+                print(f"WebSocket received query: {query}")
                 
-                # Extract the response
-                response = result["messages"][-1]["content"]
-                
-                # Send the response back to the client
+                try:
+                    # Run the agent
+                    result = run_agent(query, chat_history)
+                    
+                    # Extract the response
+                    response = result["messages"][-1]["content"]
+                    
+                    # Send the response back to the client
+                    await manager.send_message(
+                        json.dumps({
+                            "response": response,
+                            "chat_history": result["messages"]
+                        }),
+                        websocket
+                    )
+                except Exception as e:
+                    print(f"Error running agent: {str(e)}")
+                    import traceback
+                    traceback.print_exc()
+                    
+                    # Send error response with fallback message
+                    await manager.send_message(
+                        json.dumps({
+                            "response": "I'm sorry, I encountered an issue while processing your request.",
+                            "error": str(e)
+                        }),
+                        websocket
+                    )
+            except json.JSONDecodeError as json_err:
+                print(f"JSON decode error: {str(json_err)}")
                 await manager.send_message(
                     json.dumps({
-                        "response": response,
-                        "chat_history": result["messages"]
-                    }),
-                    websocket
-                )
-            except json.JSONDecodeError:
-                await manager.send_message(
-                    json.dumps({
-                        "error": "Invalid JSON"
+                        "response": "I couldn't understand your message format.",
+                        "error": "Invalid JSON format"
                     }),
                     websocket
                 )
             except Exception as e:
+                print(f"Unexpected WebSocket error: {str(e)}")
+                import traceback
+                traceback.print_exc()
+                
                 await manager.send_message(
                     json.dumps({
+                        "response": "I'm sorry, an unexpected error occurred.",
                         "error": str(e)
                     }),
                     websocket
@@ -161,6 +189,9 @@ if __name__ == "__main__":
     uvicorn.run(
         "api:app",
         host="0.0.0.0",
-        port=8000,
-        reload=True
+        port=8080,
+        reload=True,
+        log_level="info",
+        ws_ping_interval=20,  # Send ping frames every 20 seconds
+        ws_ping_timeout=30    # Wait 30 seconds for pong response before closing
     )

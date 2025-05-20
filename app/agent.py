@@ -74,12 +74,21 @@ if config.chroma.host:
     )
 else:
     # Use local ChromaDB
-    db_location = config.chroma.persist_directory
-    if not os.path.exists(db_location):
-        # Initialize empty DB if it doesn't exist
-        db = Chroma.from_documents([], embeddings, persist_directory=db_location)
-    else:
-        db = Chroma(persist_directory=db_location, embedding_function=embeddings)
+    try:
+        db_location = config.chroma.persist_directory
+        if not db_location:
+            db_location = "./chroma_db"
+        
+        if not os.path.exists(db_location):
+            os.makedirs(db_location, exist_ok=True)
+            # Initialize empty DB if it doesn't exist
+            db = Chroma.from_documents([], embeddings, persist_directory=db_location)
+        else:
+            db = Chroma(persist_directory=db_location, embedding_function=embeddings)
+    except Exception as e:
+        print(f"Error setting up ChromaDB: {e}")
+        # Fallback to in-memory Chroma if persistence fails
+        db = Chroma.from_documents([], embeddings)
 
 # Define the state schema
 class AgentState(TypedDict):
@@ -139,15 +148,36 @@ def think(state: AgentState) -> AgentState:
     ])
     
     # Create a chain that will determine the next action
-    chain = prompt | model | JsonOutputParser()
-    
-    # Run the chain
-    result = chain.invoke({})
-    
-    # Determine the next action based on the result
-    if result.get("needs_more_info", False):
-        return {**state, "action": "retrieve"}
-    else:
+    try:
+        # First get the raw response from the model
+        response = model.invoke(prompt)
+        
+        # Try to parse as JSON, but handle gracefully if it fails
+        try:
+            # Try to extract JSON from the response if it's embedded in text
+            content = response.content
+            # Look for JSON-like patterns
+            if '{' in content and '}' in content:
+                json_start = content.find('{')
+                json_end = content.rfind('}') + 1
+                json_str = content[json_start:json_end]
+                result = json.loads(json_str)
+            else:
+                # If no JSON pattern found, create a simple result
+                result = {"needs_more_info": False}
+        except Exception as e:
+            print(f"Error parsing JSON: {e}")
+            # Default to responding if JSON parsing fails
+            result = {"needs_more_info": False}
+        
+        # Determine the next action based on the result
+        if result.get("needs_more_info", False):
+            return {**state, "action": "retrieve"}
+        else:
+            return {**state, "action": "respond"}
+    except Exception as e:
+        print(f"Error in think node: {e}")
+        # Default to respond if there's an error
         return {**state, "action": "respond"}
 
 # Define the response function
@@ -167,18 +197,30 @@ def respond(state: AgentState) -> AgentState:
     ])
     
     # Generate a response
-    response = prompt | model
-    result = response.invoke({})
-    
-    # Add the response to the messages
-    new_messages = messages + [{"role": "assistant", "content": result.content}]
-    
-    # Log the response to Langfuse
-    langfuse_handler.log_event(
-        name="response",
-        input=state["current_input"],
-        output=result.content
-    )
+    try:
+        response = model.invoke(prompt)
+        
+        # Add the response to the messages
+        new_messages = messages + [{"role": "assistant", "content": response.content}]
+        
+        # Log the response to Langfuse
+        langfuse_handler.log_event(
+            name="response",
+            input=state["current_input"],
+            output=response.content
+        )
+    except Exception as e:
+        print(f"Error in respond node: {e}")
+        # Provide a fallback response if there's an error
+        fallback_response = "I'm sorry, I encountered an issue while processing your request. Please try again."
+        new_messages = messages + [{"role": "assistant", "content": fallback_response}]
+        
+        # Log the error to Langfuse
+        langfuse_handler.log_event(
+            name="response_error",
+            input=state["current_input"],
+            output=str(e)
+        )
     
     return {
         **state,
