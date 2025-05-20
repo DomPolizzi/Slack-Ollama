@@ -2,8 +2,9 @@ langchain
 langchain_ollama
 langchain_core
 langchain_chroma
-langgraph
+langgraph>=0.0.38
 langfuse
+copilotkit>=0.0.42  # Specific version that supports the langchain callback handler
 pandas
 pydantic
 fastapi

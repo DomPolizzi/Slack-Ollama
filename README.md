@@ -158,6 +158,90 @@ To extend the agent with new capabilities:
 3. Add new edges to the graph to connect the new nodes
 4. Update the router function to route to the new nodes
 
+## Troubleshooting
+
+### Common Errors and Solutions
+
+#### LangchainCallbackHandler Error
+
+If you encounter an error like `'LangchainCallbackHandler' object has no attribute 'log_event'`, it's likely due to an incompatibility between the code and your installed version of langfuse.
+
+This project includes a robust solution using a compatibility wrapper (`langfuse_wrapper.py`) that handles differences in the Langfuse API across versions. The wrapper:
+
+1. Attempts to use the appropriate API method based on what's available in your installed version
+2. Falls back to console logging if no compatible API is found
+3. Catches and handles any exceptions that might occur during logging
+
+Implementation details:
+```python
+# In agent.py
+from langfuse.callback import CallbackHandler
+from langfuse_wrapper import LangfuseWrapper
+
+# Initialize with original handler
+raw_langfuse_handler = CallbackHandler(...)
+
+# Wrap with our compatibility wrapper
+langfuse_handler = LangfuseWrapper(raw_langfuse_handler)
+
+# Then use the wrapper for logging
+langfuse_handler.log_event(name="event_name", input=input_data, output=output_data)
+```
+
+#### LangGraph Concurrent Update Error
+
+If you encounter an error like `"Can receive only one value per step. Use an Annotated key to handle multiple values."` or `"INVALID_CONCURRENT_GRAPH_UPDATE"`, this is likely due to conflicting updates to the LangGraph state.
+
+The solution involves multiple improvements:
+
+1. Remove callback handlers from the LLM initialization:
+```python
+# Initialize Ollama LLM without callbacks
+ollama_params = {
+    "model": config.ollama.llm_model,
+    "callbacks": []  # Empty callbacks to avoid concurrent updates
+}
+```
+
+2. Use proper deep copying of all state objects in each node function:
+```python
+messages = state["messages"].copy()  # Make a copy to avoid modifying the original
+```
+
+3. Always create fresh state dictionaries instead of using the spread operator:
+```python
+# Create a completely new state to avoid any reference issues
+return {
+    "messages": messages,
+    "current_input": query,
+    "retrieval_results": retrieval_results,
+    "action": "think"
+}
+```
+
+4. Use direct message objects instead of ChatPromptTemplate:
+```python
+# Create messages for the prompt
+prompt_messages = [
+    HumanMessage(content=system_prompt),
+    HumanMessage(content=f"Retrieved information: {retrieval_results}")
+]
+
+# Add the chat history messages
+for m in messages:
+    role = m["role"]
+    content = m["content"]
+    if role == "user":
+        prompt_messages.append(HumanMessage(content=content))
+    elif role == "assistant":
+        prompt_messages.append(AIMessage(content=content))
+
+# Use the messages directly
+response = model.invoke(prompt_messages)
+```
+
+These changes ensure proper state isolation and prevent concurrent updates to the graph state.
+
 ## License
 
 [MIT License](LICENSE)

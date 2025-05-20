@@ -16,9 +16,10 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Import agent functionality
-from agent import run_agent
+from agent import run_agent, copilot_agent
 from document_loader import load_documents
 from config import config
+
 
 # Create FastAPI app
 app = FastAPI(
@@ -58,6 +59,31 @@ class DocumentResponse(BaseModel):
     message: str
 
 # Define API endpoints
+
+from fastapi import Request
+
+@app.post("/coagent")
+async def coagent_endpoint(request: Request):
+    """Endpoint for CoPilotKit to interact with the agent."""
+    try:
+        print("[DEBUG][coagent_endpoint] Received request")
+        payload = await request.json()
+        # CoPilotKit expects the agent to be called with the full state dict
+        state = payload.get("state", {})
+        
+        print(f"[DEBUG][coagent_endpoint] State: {state}")
+        
+        # Run the agent using the simplified function
+        result = copilot_agent(state)
+        
+        print(f"[DEBUG][coagent_endpoint] Result: {result}")
+        return result
+    except Exception as e:
+        print(f"[ERROR][coagent_endpoint] CoPilotKit agent error: {e}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"CoPilotKit agent error: {e}")
+
 @app.get("/")
 async def root():
     """Root endpoint."""
