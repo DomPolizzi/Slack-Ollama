@@ -110,6 +110,25 @@ async def query(request: QueryRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+# Alias chat endpoint for v1 compatibility
+class ChatRequest(BaseModel):
+    message: str
+
+@app.post("/v1/chat")
+async def v1_chat(request: ChatRequest):
+    """Chat endpoint alias for frontend compatibility."""
+    try:
+        result = run_agent(request.message)
+        response = result["messages"][-1]["content"]
+        return {"response": response}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/chat")
+async def chat_alias(request: ChatRequest):
+    """Chat endpoint alias at /chat for compatibility."""
+    return await v1_chat(request)
+
 @app.post("/documents", response_model=DocumentResponse)
 async def upload_documents(request: DocumentRequest):
     """Upload documents to the vector store."""
