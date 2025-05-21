@@ -8,6 +8,9 @@ COPY frontend/package.json frontend/package-lock.json* ./
 # Install dependencies
 RUN npm ci
 
+# Install CopilotKit packages
+RUN npm install @copilotkit/react-core @copilotkit/react-ui
+
 # Copy the rest of the frontend files
 COPY frontend/next.config.js ./
 COPY frontend/postcss.config.js ./
