@@ -3,7 +3,7 @@ from langchain_ollama import OllamaEmbeddings, OllamaLLM
 from langchain_chroma import Chroma
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import JsonOutputParser
-from langchain_core.messages import HumanMessage, AIMessage
+from langchain_core.messages import SystemMessage, HumanMessage, AIMessage
 from langchain_core.runnables import RunnablePassthrough
 from langgraph.graph import StateGraph, END
 from langgraph.prebuilt import ToolNode
@@ -198,14 +198,19 @@ def think(state: AgentState) -> AgentState:
     # Get current state values without modifying them
     retrieval_results = state["retrieval_results"]
     
-    # Format messages for model input
-    prompt_messages = [
-        HumanMessage(content=system_prompt),
-        HumanMessage(content=f"Retrieved information: {retrieval_results}")
+    # Build full conversation history
+    history_msgs = []
+    for m in state["messages"]:
+        if m.get("role") == "user":
+            history_msgs.append(HumanMessage(content=m["content"]))
+        else:
+            history_msgs.append(AIMessage(content=m["content"]))
+
+    # Construct prompt with system prompt, history, retrieval, and current input
+    prompt_messages = [SystemMessage(content=system_prompt)] + history_msgs + [
+        HumanMessage(content=f"Retrieved information: {retrieval_results}"),
+        HumanMessage(content=state["current_input"])
     ]
-    
-    # Add user's question
-    prompt_messages.append(HumanMessage(content=state["current_input"]))
     
     print(f"[DEBUG][think] Sending {len(prompt_messages)} messages to model")
     for i, msg in enumerate(prompt_messages):
@@ -282,9 +287,16 @@ def respond(state: AgentState) -> AgentState:
     
     print(f"[DEBUG][respond] Creating prompt with retrieval results length: {len(retrieval_results)}")
     
-    # Create messages for the prompt
-    prompt_messages = [
-        HumanMessage(content=system_prompt),
+    # Build full conversation history
+    history_msgs = []
+    for m in state["messages"]:
+        if m.get("role") == "user":
+            history_msgs.append(HumanMessage(content=m["content"]))
+        else:
+            history_msgs.append(AIMessage(content=m["content"]))
+
+    # Construct prompt with system prompt, history, retrieval, and current input
+    prompt_messages = [SystemMessage(content=system_prompt)] + history_msgs + [
         HumanMessage(content=f"Retrieved information: {retrieval_results}"),
         HumanMessage(content=state["current_input"])
     ]
@@ -371,9 +383,16 @@ def simple_agent(state: Dict) -> Dict:
         print(f"[ERROR][simple_agent] Document search failed: {e}")
         retrieval_results = []
     
-    # Format the prompt
-    prompt_messages = [
-        SystemMessage(content=system_prompt),
+    # Build full conversation history for prompt
+    history_msgs = []
+    for m in state.get("messages", [])[:-1]:
+        if m.get("role") == "user":
+            history_msgs.append(HumanMessage(content=m["content"]))
+        else:
+            history_msgs.append(AIMessage(content=m["content"]))
+
+    # Construct prompt with system prompt, history, retrieval, and current input
+    prompt_messages = [SystemMessage(content=system_prompt)] + history_msgs + [
         HumanMessage(content=f"Retrieved information: {retrieval_results}"),
         HumanMessage(content=query)
     ]
