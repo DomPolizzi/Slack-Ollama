@@ -21,6 +21,9 @@ services:
       - CHROMA_COLLECTION_NAME=${CHROMA_COLLECTION_NAME}
       - CHROMA_HOST=${CHROMA_HOST}
       - CHROMA_PORT=${CHROMA_PORT}
+      - SLACK_TOKEN=${SLACK_TOKEN}
+      - SLACK_APP_TOKEN=${SLACK_APP_TOKEN}
+      - SLACK_SIGNING_SECRET=${SLACK_SIGNING_SECRET}
     networks:
     - internal-net
     hostname: api
