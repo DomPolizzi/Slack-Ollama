@@ -2,6 +2,8 @@
 A wrapper for langfuse to handle API compatibility issues between versions.
 """
 
+from configs.config import config
+
 class LangfuseWrapper:
     """
     Wrapper for langfuse callback handlers that works with any version.
@@ -21,11 +23,13 @@ class LangfuseWrapper:
             
         # Try different API versions
         try:
-            # First try the old API directly
+            # First try the old API directly, but catch import errors
             if hasattr(self.handler, 'log_event'):
                 try:
                     self.handler.log_event(name=name, input=input, output=output)
                     return
+                except ModuleNotFoundError as e:
+                    print(f"[LANGFUSE] legacy log_event import error: {e}")
                 except Exception as e:
                     print(f"[LANGFUSE] log_event error: {e}")
                 
@@ -38,7 +42,7 @@ class LangfuseWrapper:
                     
                     # Try with run_id
                     # Provide a richer serialized dict so Langfuse can parse the LLM model name
-                    from config import config
+                    # using imported config
                     serialized = {
                         "id": "ollama-llm",
                         "model": getattr(config.ollama, "llm_model", "unknown"),
@@ -96,3 +100,49 @@ class LangfuseWrapper:
         except Exception as e:
             # Catch all exceptions and print to console
             print(f"[LANGFUSE] Error: {e}. Event: {name}")
+            
+    def session_start(self, name, input=None):
+        """Log session start event, compatible with any langfuse version."""
+        import uuid
+        run_id = str(uuid.uuid4())
+        if self.handler and hasattr(self.handler, "on_session_start"):
+            try:
+                self.handler.on_session_start(name=name, run_id=run_id, input=input or {})
+                return
+            except Exception as e:
+                print(f"[LANGFUSE] session_start error: {e}")
+        # Fallback to logging event
+        self.log_event(name="session_start", input=input)
+
+    def session_end(self, name, output=None):
+        """Log session end event, compatible with any langfuse version."""
+        if self.handler and hasattr(self.handler, "on_session_end"):
+            try:
+                self.handler.on_session_end(name=name, output=output or {})
+                return
+            except Exception as e:
+                print(f"[LANGFUSE] session_end error: {e}")
+        # Fallback to logging event
+        self.log_event(name="session_end", output=output)
+
+    def graph_start(self, graph):
+        """Log agent graph start event, compatible with any langfuse version."""
+        if self.handler and hasattr(self.handler, "on_graph_start"):
+            try:
+                self.handler.on_graph_start(graph=graph)
+                return
+            except Exception as e:
+                print(f"[LANGFUSE] graph_start error: {e}")
+        # Fallback to logging event
+        self.log_event(name="graph_start", input=graph)
+
+    def graph_end(self, graph):
+        """Log agent graph end event, compatible with any langfuse version."""
+        if self.handler and hasattr(self.handler, "on_graph_end"):
+            try:
+                self.handler.on_graph_end(graph=graph)
+                return
+            except Exception as e:
+                print(f"[LANGFUSE] graph_end error: {e}")
+        # Fallback to logging event
+        self.log_event(name="graph_end", output=graph)

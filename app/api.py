@@ -15,6 +15,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from agents.agent import run_agent, copilot_agent
+from components.langgraph_agent import run_graph_agent
 from components.document_loader import load_documents
 from configs.config import config
 
@@ -102,6 +103,19 @@ async def query(request: QueryRequest):
         response = result["messages"][-1]["content"]
         
         # Return the response and updated chat history
+        return QueryResponse(
+            response=response,
+            chat_history=result["messages"]
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/graph_query", response_model=QueryResponse)
+async def graph_query(request: QueryRequest):
+    """Query the agent using LangGraph with full session and graph tracing."""
+    try:
+        result = run_graph_agent(request.query, request.chat_history)
+        response = result["messages"][-1]["content"]
         return QueryResponse(
             response=response,
             chat_history=result["messages"]
