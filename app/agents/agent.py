@@ -1,4 +1,5 @@
-from typing import Dict, List, Annotated, TypedDict, Literal
+from typing import Dict, List, Annotated, Literal
+from typing_extensions import TypedDict
 from langchain_ollama import OllamaEmbeddings, OllamaLLM
 from langchain_chroma import Chroma
 from langchain_core.prompts import ChatPromptTemplate
@@ -148,7 +149,7 @@ def debug_print_state(prefix, state):
         print(f"    ... and {len(retrieval_results) - 2} more results")
 
 # Define the retrieval function
-def retrieve(state: AgentState) -> AgentState:
+def retrieve(state):
     """Retrieve relevant documents from the vector store."""
     print(f"\n[DEBUG][retrieve] ENTER with state action: {state.get('action')}")
     debug_print_state("retrieve-input", state)
@@ -191,7 +192,7 @@ def retrieve(state: AgentState) -> AgentState:
     return new_state
 
 # Define the thinking function
-def think(state: AgentState) -> AgentState:
+def think(state):
     """Process the retrieved information and decide on the next action."""
     print(f"\n[DEBUG][think] ENTER with state action: {state.get('action')}")
     debug_print_state("think-input", state)
@@ -271,7 +272,7 @@ def think(state: AgentState) -> AgentState:
     return new_state
 
 # Define the response function
-def respond(state: AgentState) -> AgentState:
+def respond(state):
     """Generate a response to the user's query."""
     print(f"\n[DEBUG][respond] ENTER with state action: {state.get('action')}")
     debug_print_state("respond-input", state)

@@ -5,6 +5,7 @@ from slack_bolt.adapter.socket_mode import SocketModeHandler
 from dotenv import load_dotenv
 
 from agents.agent import run_agent
+from components.langgraph_agent import run_graph_agent
 
 load_dotenv()
 
@@ -26,7 +27,7 @@ def handle_message_events(body, say, logger):
         return
 
     # Generate response via our agent
-    result = run_agent(text)
+    result = run_graph_agent(text)
     response_text = result["messages"][-1]["content"]
 
     # If public channel, DM the user
