@@ -15,6 +15,7 @@ from dotenv import load_dotenv
 # Load environment variables
 load_dotenv()
 
+
 # Import agent functionality
 from agent import run_agent, copilot_agent
 from document_loader import load_documents
@@ -42,6 +43,9 @@ app.add_middleware(
 print(f"FastAPI app initialized with CORS: allow_origins=['*']")
 print(f"WebSocket endpoint available at: /ws")
 
+from slack_integration import init_slack
+app.add_event_handler("startup", init_slack)
+
 # Define request and response models
 class QueryRequest(BaseModel):
     query: str
@@ -60,7 +64,7 @@ class DocumentResponse(BaseModel):
 
 # Define API endpoints
 
-from fastapi import Request
+from fastapi import Request, Header, Response
 
 @app.post("/coagent")
 async def coagent_endpoint(request: Request):
@@ -228,6 +232,7 @@ async def websocket_endpoint(websocket: WebSocket):
                 )
     except WebSocketDisconnect:
         manager.disconnect(websocket)
+
 
 if __name__ == "__main__":
     import uvicorn

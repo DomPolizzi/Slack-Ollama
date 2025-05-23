@@ -14,3 +14,5 @@ python-dotenv
 copilotkit
 websockets
 langchain_community
+slack-sdk
+slack_bolt
