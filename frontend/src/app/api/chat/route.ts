@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 export async function POST(req: NextRequest) {
   const body = await req.json();
   const message = body.message;
+  const chatHistory = body.chat_history || [];
   console.log('API /api/chat received message:', message);
   const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://api:8080';
 
@@ -13,7 +14,7 @@ export async function POST(req: NextRequest) {
     const backend = await fetch(`${apiUrl}/v1/chat/stream`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ message }),
+      body: JSON.stringify({ message, chat_history: chatHistory }),
     });
     return new Response(backend.body, {
       headers: {
@@ -25,10 +26,10 @@ export async function POST(req: NextRequest) {
 
   // Fallback to JSON endpoint
   const backend = await fetch(`${apiUrl}/v1/chat`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ message }),
-  });
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message, chat_history: chatHistory }),
+    });
   const data = await backend.json();
   return NextResponse.json({ response: data.response });
 }

@@ -9,7 +9,6 @@ interface Message {
 }
 
 export default function Chat() {
-  console.log('Chat component render');
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -25,8 +24,9 @@ export default function Chat() {
     const trimmed = input.trim();
     if (!trimmed) return;
 
-    console.log('Chat submit:', trimmed);
-    setMessages(prev => [...prev, { role: 'user', content: trimmed }]);
+    const userMessage: Message = { role: 'user', content: trimmed };
+    const newHistory = [...messages, userMessage];
+    setMessages(newHistory);
     setInput('');
     setIsLoading(true);
 
@@ -34,15 +34,13 @@ export default function Chat() {
       const res = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: trimmed }),
+        body: JSON.stringify({ message: trimmed, chat_history: newHistory }),
       });
-      console.log('API response status:', res.status);
       const data = await res.json();
-      console.log('API response data:', data);
       const assistantMsg = data.response || 'No response';
       setMessages(prev => [...prev, { role: 'assistant', content: assistantMsg }]);
     } catch (err) {
-      console.error('Chat error:', err);
+      console.error(err);
       setMessages(prev => [...prev, { role: 'assistant', content: 'Error connecting to backend.' }]);
     } finally {
       setIsLoading(false);

@@ -113,12 +113,13 @@ async def query(request: QueryRequest):
 # Alias chat endpoint for v1 compatibility
 class ChatRequest(BaseModel):
     message: str
+    chat_history: Optional[List[Dict]] = None
 
 @app.post("/v1/chat")
 async def v1_chat(request: ChatRequest):
     """Chat endpoint alias for frontend compatibility."""
     try:
-        result = run_agent(request.message)
+        result = run_agent(request.message, request.chat_history)
         response = result["messages"][-1]["content"]
         return {"response": response}
     except Exception as e:
