@@ -7,7 +7,10 @@ import sys
 from langchain_ollama import OllamaLLM, OllamaEmbeddings
 from langchain_chroma import Chroma
 from langfuse.callback import CallbackHandler
-from config import config
+
+from configs.config import config
+# Add parent directory to Python path
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 def test_ollama_connection():
     """Test connection to Ollama."""

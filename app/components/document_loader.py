@@ -11,7 +11,7 @@ from langchain_ollama import OllamaEmbeddings
 from langchain_chroma import Chroma
 from langfuse.callback import CallbackHandler
 
-from config import config
+from configs.config import config
 
 # Initialize Langfuse for observability
 langfuse_handler = CallbackHandler(

@@ -7,14 +7,13 @@ from langchain_core.messages import SystemMessage, HumanMessage, AIMessage
 from langchain_core.runnables import RunnablePassthrough
 from langgraph.graph import StateGraph, END
 from langgraph.prebuilt import ToolNode
-from copilotkit import LangGraphAgent  # CoPilotKit integration
-from copilotkit import LangGraphAgent  # CoPilotKit integration
-from langfuse.callback import CallbackHandler  # Keep original import
-from langfuse_wrapper import LangfuseWrapper
+from copilotkit import LangGraphAgent
+from langfuse.callback import CallbackHandler
+from components.langfuse_wrapper import LangfuseWrapper
 import os
 import json
 
-from config import config
+from configs.config import config
 
 # Initialize Langfuse for observability
 raw_langfuse_handler = CallbackHandler(
@@ -118,6 +117,8 @@ Follow these steps:
 1. Analyze the user's question
 2. Decide if you need to retrieve information from the knowledge base
 3. Formulate a response based on the retrieved information and your knowledge
+4. Don't Share Analysis with the user, only share the final response
+
 """
 
 # DEBUG FUNCTIONS
