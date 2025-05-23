@@ -4,7 +4,7 @@ from slack_bolt import App
 from slack_bolt.adapter.socket_mode import SocketModeHandler
 from dotenv import load_dotenv
 
-from agent import run_agent
+from agents.agent import run_agent
 
 load_dotenv()
 

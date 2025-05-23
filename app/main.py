@@ -1,6 +1,6 @@
 import os
-from agent import run_agent
-from document_loader import load_documents
+from agents.agent import run_agent
+from components.document_loader import load_documents
 
 def main():
     """Main entry point for the LLM Agent application."""
@@ -27,7 +27,6 @@ def main():
         if query.lower() == 'q':
             break
         
-        # Run the agent
         result = run_agent(query)
         
         # Display the response

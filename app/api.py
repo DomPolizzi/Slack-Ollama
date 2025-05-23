@@ -12,20 +12,16 @@ import json
 import asyncio
 from dotenv import load_dotenv
 
-# Load environment variables
 load_dotenv()
 
-
-# Import agent functionality
-from agent import run_agent, copilot_agent
-from document_loader import load_documents
-from config import config
-
+from agents.agent import run_agent, copilot_agent
+from components.document_loader import load_documents
+from configs.config import config
 
 # Create FastAPI app
 app = FastAPI(
-    title="LLM Agent API",
-    description="API for the LLM Agent with LangGraph, Langfuse, Ollama, and ChromaDB",
+    title="Pops Agent API",
+    description="API for the Pops",
     version="1.0.0",
 )
 
@@ -43,7 +39,7 @@ app.add_middleware(
 print(f"FastAPI app initialized with CORS: allow_origins=['*']")
 print(f"WebSocket endpoint available at: /ws")
 
-from slack_integration import init_slack
+from components.slack_integration import init_slack
 app.add_event_handler("startup", init_slack)
 
 # Define request and response models
@@ -62,7 +58,6 @@ class DocumentResponse(BaseModel):
     num_documents: int
     message: str
 
-# Define API endpoints
 
 from fastapi import Request, Header, Response
 
