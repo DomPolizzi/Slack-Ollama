@@ -28,36 +28,36 @@ class HRGraphState(BaseModel):
 _tracer = LangfuseWrapper()
 
 def _classify_node(state: Dict[str, Any]) -> Dict[str, Any]:
-    route = classify_intent(state["query"])
-    state["route"] = route
-    _tracer.log_event("classify", input=state["query"], output=route, run_id=state["_run_id"], tags=["classification"])
+    route = classify_intent(state.query)
+    state.route = route
+    _tracer.log_event("classify", input=state.query, output=route, run_id=state._run_id)
     return state
 
 def _retriever_node(state: Dict[str, Any]) -> Dict[str, Any]:
-    docs = retrieve_documents(state["query"])
+    docs = retrieve_documents(state.query)
     ranked = rank_documents(docs)
-    state["docs"] = ranked
-    _tracer.log_event("retrieve", input=state["query"], output=[d["id"] for d in ranked], run_id=state["_run_id"], tags=["retrieval"])
+    state.docs = ranked
+    _tracer.log_event("retrieve", input=state.query, output=[d["id"] for d in ranked], run_id=state._run_id)
     return state
 
 def _grader_node(state: Dict[str, Any]) -> Dict[str, Any]:
     # for simplicity, pass through and log
-    _tracer.log_event("grade", input=[d["score"] for d in state.get("docs", [])], output=None, run_id=state["_run_id"], tags=["grading"])
+    _tracer.log_event("grade", input=[d["score"] for d in state.get("docs", [])], output=None, run_id=state["_run_id"])
     return state
 
 def _response_node(state: Dict[str, Any]) -> Dict[str, Any]:
-    if state["route"] == "small_talk":
-        resp = ollama_generate(state["query"])
+    if state.route == "small_talk":
+        resp = ollama_generate(state.query)
     else:
-        context_texts = "\n\n".join([d["text"] for d in state.get("docs", [])])
+        context_texts = "\n\n".join([d["text"] for d in state.docs])
         prompt = (
             f"You are an expert HR assistant.\n\n"
             f"Context Documents:\n{context_texts}\n\n"
-            f"User Query: {state['query']}"
+            f"User Query: {state.query}"
         )
         resp = ollama_generate(prompt)
-    state.setdefault("messages", []).append({"role": "assistant", "content": resp})
-    _tracer.log_event("generate_response", input=state["query"], output=resp, run_id=state["_run_id"], tags=["response"])
+    state.messages.append({"role": "assistant", "content": resp})
+    _tracer.log_event("generate_response", input=state.query, output=resp, run_id=state._run_id)
     return state
 
 # Build the supervisor workflow graph
@@ -70,7 +70,7 @@ _graph.add_node("response", RunnableLambda(_response_node))
 _graph.set_entry_point("classify")
 
 def route_selector(state: Dict[str, Any]) -> str:
-    return state["route"]
+    return state.route
 
 _graph.add_conditional_edges(
     source="classify",
@@ -95,6 +95,9 @@ def run_graph_supervisor(state: Dict[str, Any]) -> Dict[str, Any]:
     then return the final state dict.
     """
     run_id = str(uuid.uuid4())
+    state.setdefault("route", "")
+    state.setdefault("docs", [])
+    state.setdefault("messages", [])
     state["_run_id"] = run_id
     _tracer.session_start("supervisor_graph", input=state)
     result = executable_graph.invoke(state)

@@ -2,7 +2,7 @@ import os
 import uuid
 from typing import List, Dict, Any, Optional
 
-from langchain_community.llms import Ollama
+from langchain_ollama import OllamaLLM
 from langchain_community.embeddings import OllamaEmbeddings
 from langchain_community.vectorstores import Chroma
 from langchain.chains import ConversationalRetrievalChain
@@ -11,9 +11,9 @@ from langchain.schema import Document
 from configs.config import config
 
 
-def get_llm() -> Ollama:
+def get_llm() -> OllamaLLM:
     """Instantiate Ollama LLM via LangChain."""
-    return Ollama(
+    return OllamaLLM(
         model=os.environ.get("OLLAMA_LLM_MODEL", config.ollama.llm_model),
         base_url=os.environ.get("OLLAMA_BASE_URL", config.ollama.base_url)
     )
@@ -78,7 +78,7 @@ def rank_documents(docs: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
 def ollama_generate(prompt: str) -> str:
     """Generate a response using the Ollama LLM."""
     llm = get_llm()
-    return llm.predict(prompt)
+    return llm.invoke(prompt)
 
 def run_supervisor_agent(query: str, history: Optional[List[Dict[str, Any]]] = None) -> Dict[str, Any]:
     """
@@ -96,7 +96,7 @@ def run_supervisor_agent(query: str, history: Optional[List[Dict[str, Any]]] = N
 
     if intent == "small_talk":
         # direct chat response
-        response = llm.predict(query)
+        response = llm.invoke(query)
     else:
         # create conversational retrieval chain for RAG
         qa_chain = ConversationalRetrievalChain.from_llm(
