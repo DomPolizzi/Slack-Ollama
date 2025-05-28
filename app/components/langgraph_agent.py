@@ -1,45 +1,45 @@
+"""
+Manual pipeline for HR Agent with Langfuse tracing (no StateGraph).
+"""
+import uuid
 from typing import Dict, List
-from copilotkit import LangGraphAgent  # imported but not used for now
+from configs.config import config
 from langfuse.callback import CallbackHandler
 from components.langfuse_wrapper import LangfuseWrapper
-from agents.agent import retrieve, think, respond
-from configs.config import config
+from agents.agent import retrieve as retrieve_fn, grade as grade_fn, generate_response
 
-# Initialize raw Langfuse handler and compatibility wrapper
-_raw_handler = CallbackHandler(
+# Initialize Langfuse tracing
+raw_handler = CallbackHandler(
     public_key=config.langfuse.public_key,
     secret_key=config.langfuse.secret_key,
     host=config.langfuse.host
 )
-langfuse_handler = LangfuseWrapper(_raw_handler)
+langfuse_handler = LangfuseWrapper(raw_handler)
 
-def run_graph_agent(query: str, chat_history: List[Dict] = None) -> Dict:
-    """
-    Execute the agent workflow manually with Langfuse session and graph tracing.
-    This replaces the LangGraphAgent approach.
-    """
-    if chat_history is None:
-        chat_history = []
-    # initial state
-    state = {
-        "messages": chat_history + [{"role": "user", "content": query}],
-        "current_input": query,
-        "retrieval_results": [],
-        "action": "retrieve"
-    }
+def run_graph_agent(query: str, history: List[Dict] = None) -> Dict:
+    """Execute HR Agent steps: info_triage, retrieve, grade, generate_response."""
+    history = history or []
+    run_id = str(uuid.uuid4())
+    langfuse_handler.session_start("hr_agent", input=query)
 
-    # Langfuse session start
-    langfuse_handler.session_start(name="manual_session", input={"query": query})
-    langfuse_handler.graph_start(graph="manual_agent_flow")
+    # Info triage
+    q = query.lower()
+    keywords = ["policy", "doc", "troubleshoot"]
+    need_retrieve = any(kw in q for kw in keywords)
+    langfuse_handler.log_event("info_triage", input=query, output=need_retrieve)
 
-    # Run each step
-    state = retrieve(state)
-    state = think(state)
-    state = respond(state)
+    ranked_docs: List[str] = []
+    if need_retrieve:
+        docs = retrieve_fn(query)
+        langfuse_handler.log_event("retrieve", input=query, output=docs)
+        ranked_docs = grade_fn(docs)
+        langfuse_handler.log_event("grade_retrieval", input=query, output=ranked_docs)
 
-    # Graph end and session end
-    langfuse_handler.graph_end(graph="manual_agent_flow")
-    last_response = state.get("messages", [])[-1].get("content")
-    langfuse_handler.session_end(name="manual_session", output={"response": last_response})
+    # Generate response
+    response = generate_response(query, history, ranked_docs)
+    langfuse_handler.log_event("generate_response", input=query, output=response)
 
-    return state
+    # End session
+    result = {"messages": history + [{"role": "assistant", "content": response}]}
+    langfuse_handler.session_end("hr_agent", output={"num_messages": len(result["messages"])})
+    return result
