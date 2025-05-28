@@ -7,6 +7,7 @@ from pydantic import BaseModel
 from configs.config import config
 from components.slack_integration import init_slack
 from components.langgraph_supervisor import run_graph_supervisor
+from langfuse.callback import CallbackHandler
 
 class QueryRequest(BaseModel):
     query: str
@@ -16,8 +17,15 @@ class QueryResponse(BaseModel):
     response: str
     chat_history: List[Dict]
 
+langfuse_hangler = CallbackHandler(
+    public_key=config.langfuse.public_key,
+    secret_key=config.langfuse.secret_key,
+    host=config.langfuse.host
+)
+
+
 app = FastAPI(
-    title="LangGraph Supervisor API",
+    title="Pops",
     description="Supervisor agent API for LangGraph workflows",
     version="1.0.0"
 )
