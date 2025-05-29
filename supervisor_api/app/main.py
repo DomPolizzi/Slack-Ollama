@@ -7,7 +7,7 @@ from pydantic import BaseModel
 from configs.config import config
 from components.slack_integration import init_slack
 from components.langgraph_supervisor import run_graph_supervisor
-from langfuse.callback import CallbackHandler
+
 
 class QueryRequest(BaseModel):
     query: str
@@ -16,8 +16,6 @@ class QueryRequest(BaseModel):
 class QueryResponse(BaseModel):
     response: str
     chat_history: List[Dict]
-
-
 
 app = FastAPI(
     title="Pops",

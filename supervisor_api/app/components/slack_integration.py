@@ -1,9 +1,9 @@
 import os
 import threading
+
 from slack_bolt import App
 from slack_bolt.adapter.socket_mode import SocketModeHandler
 from dotenv import load_dotenv
-
 from components.langgraph_supervisor import run_graph_supervisor
 
 load_dotenv()
