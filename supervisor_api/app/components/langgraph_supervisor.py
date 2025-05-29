@@ -4,7 +4,12 @@ import uuid
 from langgraph.graph.state import StateGraph
 from langgraph.graph import END
 from langchain_core.runnables import RunnableLambda
+from langgraph.checkpoint.memory import MemorySaver
+from langgraph.graph.message import add_messages
+from langchain_core.messages import AnyMessage
+from typing_extensions import Annotated
 
+from components.trace_store import thread_run_map
 from components.supervisor_agent import (
     classify_intent,
     retrieve_documents,
@@ -24,18 +29,19 @@ class HRGraphState(BaseModel):
     query: str
     route: str
     docs: List[Dict[str, Any]]
-    messages: List[Dict[str, str]]
+    messages: Annotated[list[AnyMessage], add]
     _run_id: str
 
 # Initialize tracing
 _tracer = LangfuseWrapper()
+
 
 @observe()
 def _classify_node(state: Dict[str, Any]) -> Dict[str, Any]:
     route = classify_intent(state.query)
     state.route = route
     _tracer.log_event("classify", input=state.query, output=route, run_id=state._run_id)
-    return state
+    return {"route": route}
 
 @observe()
 def _retriever_node(state: Dict[str, Any]) -> Dict[str, Any]:
@@ -43,13 +49,13 @@ def _retriever_node(state: Dict[str, Any]) -> Dict[str, Any]:
     ranked = rank_documents(docs)
     state.docs = ranked
     _tracer.log_event("retrieve", input=state.query, output=[d["id"] for d in ranked], run_id=state._run_id)
-    return state
+    return {"docs": [d["id"] for d in ranked]}
 
 @observe()
 def _grader_node(state: Dict[str, Any]) -> Dict[str, Any]:
     # for simplicity, pass through and log
     _tracer.log_event("grade", input=[d["score"] for d in state.get("docs", [])], output=None, run_id=state["_run_id"])
-    return state
+    return {"docs": [d["id"] for d in ranked]}
 
 @observe()
 def _response_node(state: Dict[str, Any]) -> Dict[str, Any]:
@@ -63,9 +69,9 @@ def _response_node(state: Dict[str, Any]) -> Dict[str, Any]:
             f"User Query: {state.query}"
         )
         resp = ollama_generate(prompt)
-    state.messages.append({"role": "assistant", "content": resp})
+    #state.messages.append({"role": "assistant", "content": resp})
     _tracer.log_event("generate_response", input=state.query, output=resp, run_id=state._run_id)
-    return state
+    return {"messages": [{"role": "assistant", "content": resp}]} 
 
 # Build the supervisor workflow graph
 _graph = StateGraph(state_schema=HRGraphState)
@@ -94,20 +100,26 @@ _graph.add_edge("grader", "response")
 _graph.add_edge("response", END)
 
 # Compile the graph for execution
-executable_graph = _graph.compile()
+memory = MemorySaver()
+executable_graph = _graph.compile(checkpointer=memory)
 
 def run_graph_supervisor(state: Dict[str, Any]) -> Dict[str, Any]:
-    """
-    Initialize run_id, inject into state, invoke the compiled graph,
-    then return the final state dict.
-    """
-    run_id = str(uuid.uuid4())
+    thread_id = state.get("slack_thread_id")
+
+    if thread_id and thread_id in thread_run_map:
+        run_id = thread_run_map[thread_id]  
+    else:
+        run_id = str(uuid.uuid4())          # 🔄 New run_id
+        if thread_id:
+            thread_run_map[thread_id] = run_id
+
     state.setdefault("route", "")
     state.setdefault("docs", [])
     state.setdefault("messages", [])
     state["_run_id"] = run_id
+
     _tracer.session_start("supervisor_graph", input=state)
     _tracer.set_trace_context(run_id)
-    result = executable_graph.invoke(state)
+    result = executable_graph.invoke(state, {"configurable": {"thread_id": str(thread_id)}}, debug=True)
     _tracer.session_end("supervisor_graph", output=result, run_id=run_id)
     return result
