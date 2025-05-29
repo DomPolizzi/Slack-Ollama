@@ -17,11 +17,6 @@ class QueryResponse(BaseModel):
     response: str
     chat_history: List[Dict]
 
-langfuse_hangler = CallbackHandler(
-    public_key=config.langfuse.public_key,
-    secret_key=config.langfuse.secret_key,
-    host=config.langfuse.host
-)
 
 
 app = FastAPI(
@@ -58,4 +53,4 @@ async def query_endpoint(request: QueryRequest):
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("app.main:app", host="0.0.0.0", port=8080)
+    uvicorn.run("app.main:app", host="0.0.0.0", port=8080, reload=True)

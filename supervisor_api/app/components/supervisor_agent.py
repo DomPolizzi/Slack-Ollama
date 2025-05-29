@@ -10,12 +10,16 @@ from langchain.schema import Document
 
 from configs.config import config
 
+from components.langfuse_wrapper import LangfuseWrapper
+
+_tracer = LangfuseWrapper()  # reuse global tracer
 
 def get_llm() -> OllamaLLM:
     """Instantiate Ollama LLM via LangChain."""
     return OllamaLLM(
         model=os.environ.get("OLLAMA_LLM_MODEL", config.ollama.llm_model),
-        base_url=os.environ.get("OLLAMA_BASE_URL", config.ollama.base_url)
+        base_url=os.environ.get("OLLAMA_BASE_URL", config.ollama.base_url),
+        callbacks=[_tracer.handler] if _tracer.handler else None
     )
 
 
@@ -23,7 +27,8 @@ def get_embeddings() -> OllamaEmbeddings:
     """Instantiate Ollama embeddings via LangChain."""
     return OllamaEmbeddings(
         model=os.environ.get("OLLAMA_EMBEDDING_MODEL", config.ollama.embedding_model),
-        base_url=os.environ.get("OLLAMA_BASE_URL", config.ollama.base_url)
+        base_url=os.environ.get("OLLAMA_BASE_URL", config.ollama.base_url),
+        callbacks=[_tracer.handler] if _tracer.handler else None
     )
 
 
@@ -32,17 +37,15 @@ def get_vectorstore() -> Chroma:
     emb = get_embeddings()
     if config.chroma.host:
         return Chroma(
-            client_settings={
-                "chroma_api_impl": "rest",
-                "chroma_server_host": os.environ.get("CHROMA_HOST", config.chroma.host),
-                "chroma_server_http_port": int(os.environ.get("CHROMA_PORT", config.chroma.port))
-            },
+            client_settings={...},
             embedding_function=emb,
-            collection_name=os.environ.get("CHROMA_COLLECTION_NAME", config.chroma.collection_name or "default")
+            collection_name=os.environ.get("CHROMA_COLLECTION_NAME", config.chroma.collection_name),
+            callbacks=[_tracer.handler] if _tracer.handler else None
         )
     return Chroma(
         embedding_function=emb,
-        collection_name=os.environ.get("CHROMA_COLLECTION_NAME", config.chroma.collection_name or "default")
+        collection_name=os.environ.get("CHROMA_COLLECTION_NAME", config.chroma.collection_name),
+        callbacks=[_tracer.handler] if _tracer.handler else None
     )
 
 def retrieve_documents(query: str):

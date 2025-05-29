@@ -12,6 +12,8 @@ from components.supervisor_agent import (
     ollama_generate
 )
 from components.langfuse_wrapper import LangfuseWrapper
+## from langfuse.decorators import langfuse_context
+from langfuse.decorators import observe
 
 import inspect
 ### Debugging Graph
@@ -28,12 +30,14 @@ class HRGraphState(BaseModel):
 # Initialize tracing
 _tracer = LangfuseWrapper()
 
+@observe()
 def _classify_node(state: Dict[str, Any]) -> Dict[str, Any]:
     route = classify_intent(state.query)
     state.route = route
     _tracer.log_event("classify", input=state.query, output=route, run_id=state._run_id)
     return state
 
+@observe()
 def _retriever_node(state: Dict[str, Any]) -> Dict[str, Any]:
     docs = retrieve_documents(state.query)
     ranked = rank_documents(docs)
@@ -41,11 +45,13 @@ def _retriever_node(state: Dict[str, Any]) -> Dict[str, Any]:
     _tracer.log_event("retrieve", input=state.query, output=[d["id"] for d in ranked], run_id=state._run_id)
     return state
 
+@observe()
 def _grader_node(state: Dict[str, Any]) -> Dict[str, Any]:
     # for simplicity, pass through and log
     _tracer.log_event("grade", input=[d["score"] for d in state.get("docs", [])], output=None, run_id=state["_run_id"])
     return state
 
+@observe()
 def _response_node(state: Dict[str, Any]) -> Dict[str, Any]:
     if state.route == "small_talk":
         resp = ollama_generate(state.query)
@@ -101,6 +107,7 @@ def run_graph_supervisor(state: Dict[str, Any]) -> Dict[str, Any]:
     state.setdefault("messages", [])
     state["_run_id"] = run_id
     _tracer.session_start("supervisor_graph", input=state)
+    _tracer.set_trace_context(run_id)
     result = executable_graph.invoke(state)
     _tracer.session_end("supervisor_graph", output=result, run_id=run_id)
     return result

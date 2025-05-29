@@ -7,6 +7,7 @@ class LangfuseConfig(BaseModel):
     public_key: str = Field(default="")
     secret_key: str = Field(default="")
     host: str = Field(default="https://cloud.langfuse.com")
+    environment: str = Field(default="dev")
 
 class OllamaConfig(BaseModel):
     """Configuration for Ollama LLM server."""
@@ -40,7 +41,8 @@ class SupervisorConfig(BaseModel):
             langfuse=LangfuseConfig(
                 public_key=os.environ.get("LANGFUSE_PUBLIC_KEY", ""),
                 secret_key=os.environ.get("LANGFUSE_SECRET_KEY", ""),
-                host=os.environ.get("LANGFUSE_HOST", "https://cloud.langfuse.com")
+                host=os.environ.get("LANGFUSE_HOST", ""),
+                environment=os.environ.get("LANGFUSE_ENVIRONMENT", "dev")
             ),
             ollama=OllamaConfig(
                 base_url=os.environ.get("OLLAMA_BASE_URL", "http://localhost:11434"),

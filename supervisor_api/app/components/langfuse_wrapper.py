@@ -6,18 +6,40 @@ import uuid
 from typing import Any
 from configs.config import config
 from langfuse.callback import CallbackHandler
+from langfuse.decorators import observe, langfuse_context
+from langfuse.decorators import langfuse_context as _context
 
 class LangfuseWrapper:
     def __init__(self):
-        # Initialize Langfuse handler if keys are present
         if config.langfuse.public_key and config.langfuse.secret_key:
+            # Step 1: Configure langfuse_context for decorator support
+            langfuse_context.configure(
+                secret_key=config.langfuse.secret_key,
+                public_key=config.langfuse.public_key,
+                host=config.langfuse.host,
+            )
+
+            # Step 2: Init CallbackHandler for LangChain/graph event logging
             self.handler = CallbackHandler(
                 public_key=config.langfuse.public_key,
                 secret_key=config.langfuse.secret_key,
-                host=config.langfuse.host
+                host=config.langfuse.host,
+                environment=config.langfuse.environment
             )
         else:
             self.handler = None
+
+    def set_current_trace(self, run_id: str):
+        try:
+            langfuse_context.set_trace_id(run_id)
+        except Exception as e:
+            print(f"[LANGFUSE] failed to set trace context: {e}")
+
+    def set_trace_context(self, run_id: str):
+        try:
+            langfuse_context.set_trace_id(run_id)
+        except Exception as e:
+            print(f"[LANGFUSE] Failed to set trace context: {e}")
 
     def session_start(self, graph_name: str, input: dict):
         run_id = str(uuid.uuid4())
