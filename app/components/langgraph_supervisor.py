@@ -90,7 +90,7 @@ _graph.add_edge(START, "classify_node")
 # Compile the graph for execution
 memory = MemorySaver()
 executable_graph = _graph.compile(checkpointer=memory)
-executable_graph.name = "Pops"
+executable_graph.name = "SlackBot"
 
 
 def run_graph_supervisor(query: str, slack_thread_id: str, user: str) -> Dict[str, Any]:

@@ -18,7 +18,7 @@ class QueryResponse(BaseModel):
     chat_history: List[Dict]
 
 app = FastAPI(
-    title="Pops",
+    title="SlackBot",
     description="Supervisor agent API for LangGraph workflows",
     version="1.0.0"
 )
