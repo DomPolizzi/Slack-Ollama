@@ -1,60 +1,97 @@
-# LangGraph Supervisor API
+# 🧠 Ollama SlackBot — LangGraph-Based Chatbot for Slack
 
-Supervisor API provides a LangGraph-based orchestrator for Slack-driven HR workflows using Ollama, ChromaDB, LangChain, LangGraph, and Langfuse.
+ an intelligent, traceable  assistant built with LangGraph, LangChain, ChromaDB, Ollama, and Langfuse. It integrates directly with Slack to answer  questions using a structured RAG (Retrieval-Augmented Generation) pipeline.
 
-## Features
+## 🔧 Tech Stack
 
-- **Supervisor Graph**: Multi-node pipeline with classification, retrieval, grading, and response stages
-- **LangChain Integration**: Uses `Ollama` LLM & embeddings, `ConversationalRetrievalChain` over ChromaDB
-- **LangGraph Orchestration**: `StateGraph` defines conditional workflow, compiled & executed dynamically
-- **Langfuse Tracing**: Session and event logging for observability and debugging
-- **Slack Bolt**: Socket Mode listener routes incoming messages into the graph
+- **Slack Bot (Bolt Socket Mode)** — Interacts with users in DM and threads
+- **LangGraph** — Orchestrates the workflow using a stateful graph
+- **LangChain** — Connects to Ollama LLM + Chroma vector store
+- **Ollama** — Local or remote LLM + embedding model
+- **ChromaDB** — Fast, lightweight vector database
+- **Langfuse** — Observability with trace logging for each session
 
-## Quickstart
+---
 
-1. Copy environment template:
+## 🚀 Quickstart
+
+1. **Clone & Setup Environment**
    ```bash
+   git clone <this-repo>
    cd supervisor_api
    cp .env.example .env
    ```
-2. Fill in your credentials in `.env`.
-3. Build and run with Docker Compose:
+
+2. **Update `.env` with your credentials**
+   - Slack tokens
+   - Ollama / Chroma configuration
+   - Langfuse API keys
+
+3. **Run the stack**
    ```bash
    docker-compose up --build
    ```
-4. Service endpoints:
-   - `GET /` &rarr; health check  
-   - `POST /query`  
-     ```json
-     {
-       "query": "How do I update our time-off policy?",
-       "chat_history": []
-     }
-     ```
-     Response:
-     ```json
-     {
-       "response": "<assistant reply>",
-       "chat_history": [ {...}, {...} ]
-     }
-     ```
 
-## Development
+4. **Test the API**
+   ```bash
+   curl -X POST http://localhost:8080/query \
+     -H "Content-Type: application/json" \
+     -d '{"query": "How do I update our time-off policy?"}'
+   ```
 
-- Code lives under `app/`:
-  - `configs/config.py` &rarr; Pydantic settings (Slack, Ollama, Chroma, Langfuse)
-  - `components/langfuse_wrapper.py` &rarr; Langfuse compatibility & tracing
-  - `components/supervisor_agent.py` &rarr; LangChain-based helper functions
-  - `components/langgraph_supervisor.py` &rarr; Graph definition & execution
-  - `components/slack_integration.py` &rarr; Slack Bolt event handler
-  - `main.py` &rarr; FastAPI setup & `/query` endpoint
+---
 
-## Notes
+## 🗺️ System Overview
 
-- Ensure Ollama and ChromaDB services (or their Docker containers) are running and reachable via the URLs in `.env`.
-- For advanced workflows, modify `langgraph_supervisor.py` to add or rewire graph nodes and edges.
-- Langfuse tracing requires valid `LANGFUSE_PUBLIC_KEY` and `LANGFUSE_SECRET_KEY`.
+```mermaid
+graph TD
+    A[Slack Message] -->|DM or Thread| B[Slack Bolt App]
+    B --> C[LangGraph Supervisor]
+    C --> D{Intent?}
+    D -->|Small Talk| E[LLM Only]
+    D -->|Retrieve| F[ChromaDB Lookup]
+    F --> G[Rank + Compose]
+    G --> H[LLM Generate]
+    H --> I[Slack Response]
+    E --> I
+    C -->|Trace Events| J[Langfuse]
+```
 
-## License
+---
 
-MIT
+
+## 🧠 Core Logic
+
+- **`main.py`** — FastAPI entrypoint
+- **`slack_integration.py`** — Slack event router
+- **`langgraph_supervisor.py`** — LangGraph node pipeline:
+  - `classify` → `retriever` → `grader` → `response`
+- **`supervisor_agent.py`** — LangChain-based helpers (Ollama, Chroma)
+- **`config.py`** — Environment-aware config for all services
+
+---
+
+## 🛠️ Dev Notes
+
+- Chroma must be reachable via REST if running in Docker (`CHROMA_HOST`, `CHROMA_PORT`)
+- Ollama must be reachable via REST if running in Docker (`OLLAMA_HOST`, `OLLAMA_PORT`)
+- Langfuse requires valid public/secret keys and environment setup
+- Responses are logged to Langfuse with full graph execution trace
+- Slack integration supports DM and thread replies (notifies user in DM if public channel)
+
+---
+
+## ✅ To-Do
+
+- [ ] Improve confidence-based grading logic
+- [ ] Add document upload ingestion pipeline
+- [ ] Integrate memory or Redis for long-term thread state
+
+---
+
+## 📄 License
+
+MIT — free to use, modify, and contribute.
+
+---
+
