@@ -1,37 +1,54 @@
 import os
-from agents.agent import run_agent
-from components.document_loader import load_documents
+from typing import List, Dict, Optional
+import json
+from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
+from configs.config import config
+from components.slack_integration import init_slack
+from components.langgraph_supervisor import run_graph_supervisor
 
-def main():
-    """Main entry point for the LLM Agent application."""
-    print("=" * 50)
-    print("LLM Agent with LangGraph, Langfuse, Ollama, and ChromaDB")
-    print("=" * 50)
-    
-    # Check if we need to load documents
-    load_docs = input("\nDo you want to load documents into the vector store? (y/n): ").lower() == 'y'
-    
-    if load_docs:
-        doc_path = input("Enter the path to the document or directory: ")
-        if os.path.exists(doc_path):
-            num_docs = load_documents(doc_path)
-            print(f"Successfully loaded {num_docs} documents into the vector store.")
-        else:
-            print(f"Path '{doc_path}' does not exist.")
-    
-    print("\nAgent is ready. Type 'q' to quit at any time.")
-    
-    # Main interaction loop
-    while True:
-        query = input("\nEnter your question: ")
-        if query.lower() == 'q':
-            break
-        
-        result = run_agent(query)
-        
-        # Display the response
-        print("\nAgent response:")
-        print(result["messages"][-1]["content"])
+
+class QueryRequest(BaseModel):
+    query: str
+    chat_history: Optional[List[Dict]] = None
+
+class QueryResponse(BaseModel):
+    response: str
+    chat_history: List[Dict]
+
+app = FastAPI(
+    title="Pops",
+    description="Supervisor agent API for LangGraph workflows",
+    version="1.0.0"
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Initialize Slack integration on startup
+app.add_event_handler("startup", init_slack)
+
+@app.get("/")
+async def root():
+    return {"message": "Supervisor API running"}
+
+@app.post("/query", response_model=QueryResponse)
+async def query_endpoint(request: QueryRequest):
+    try:
+        state = run_graph_supervisor({"query": request.query, "chat_history": request.chat_history or []})
+        return QueryResponse(
+            response=state["messages"][-1]["content"],
+            chat_history=state["messages"]
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 if __name__ == "__main__":
-    main()
+    import uvicorn
+    uvicorn.run("app.main:app", host="0.0.0.0", port=8080, reload=True)
