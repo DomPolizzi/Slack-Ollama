@@ -2,8 +2,8 @@ import os
 import uuid
 from typing import List, Dict, Any, Optional
 
-from langchain_ollama import OllamaLLM
-from langchain_community.embeddings import OllamaEmbeddings
+from langchain_ollama import OllamaLLM, OllamaEmbeddings
+###from langchain_community.embeddings import OllamaEmbeddings
 from langchain_community.vectorstores import Chroma
 from langchain.chains import ConversationalRetrievalChain
 from langchain.schema import Document
@@ -19,7 +19,7 @@ def get_llm() -> OllamaLLM:
     return OllamaLLM(
         model=os.environ.get("OLLAMA_LLM_MODEL", config.ollama.llm_model),
         base_url=os.environ.get("OLLAMA_BASE_URL", config.ollama.base_url),
-        callbacks=[_tracer.handler] if _tracer.handler else None
+#        callbacks=[_tracer.handler] if _tracer.handler else None
     )
 
 
@@ -28,31 +28,30 @@ def get_embeddings() -> OllamaEmbeddings:
     return OllamaEmbeddings(
         model=os.environ.get("OLLAMA_EMBEDDING_MODEL", config.ollama.embedding_model),
         base_url=os.environ.get("OLLAMA_BASE_URL", config.ollama.base_url),
-        callbacks=[_tracer.handler] if _tracer.handler else None
+#        callbacks=[_tracer.handler] if _tracer.handler else None
     )
 
 
 def get_vectorstore() -> Chroma:
     """Load or connect to a Chroma vector store."""
     emb = get_embeddings()
-    if config.chroma.host:
-        return Chroma(
-            client_settings={...},
-            embedding_function=emb,
-            collection_name=os.environ.get("CHROMA_COLLECTION_NAME", config.chroma.collection_name),
-            callbacks=[_tracer.handler] if _tracer.handler else None
-        )
+#    if config.chroma.host:
+###        return Chroma(
+###            client_settings={...},
+###            embedding_function=emb,
+###            collection_name=os.environ.get("CHROMA_COLLECTION_NAME", config.chroma.collection_name)
+###        )
     return Chroma(
         embedding_function=emb,
-        collection_name=os.environ.get("CHROMA_COLLECTION_NAME", config.chroma.collection_name),
-        callbacks=[_tracer.handler] if _tracer.handler else None
+        collection_name=os.environ.get("CHROMA_COLLECTION_NAME")
     )
 
 def retrieve_documents(query: str):
     """Stub placeholder for document retrieval."""
+    print(query)
     vectorstore = get_vectorstore()
     retriever = vectorstore.as_retriever()
-    return retriever.get_relevant_documents(query)
+    return retriever.invoke(input=query)
 
 
 def classify_intent(query: str) -> str:

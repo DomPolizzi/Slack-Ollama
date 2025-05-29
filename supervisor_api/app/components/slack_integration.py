@@ -24,8 +24,8 @@ def handle_message_events(body, say, logger):
         return
 
     # Run the supervisor graph pipeline
-    result = run_graph_supervisor({"query": text, "slack_thread_id": channel, "user_id": user})
-    response_text = result["messages"][-1]["content"]
+    result = run_graph_supervisor(query=text, slack_thread_id=channel, user=user)
+    response_text = result["messages"][-1].content
 
     # DM user if message in public channel
     if channel and channel.startswith(("C", "G")):

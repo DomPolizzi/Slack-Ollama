@@ -18,7 +18,6 @@ class OllamaConfig(BaseModel):
 
 class ChromaConfig(BaseModel):
     """Configuration for ChromaDB vector store."""
-    persist_directory: str = Field(default="./chroma_db")
     collection_name: Optional[str] = Field(default=None)
     host: Optional[str] = Field(default=None)
     port: int = Field(default=8000)
@@ -51,7 +50,6 @@ class SupervisorConfig(BaseModel):
                 docker_url=os.environ.get("OLLAMA_DOCKER_URL", None)
             ),
             chroma=ChromaConfig(
-                persist_directory=os.environ.get("CHROMA_PERSIST_DIRECTORY", "./chroma_db"),
                 collection_name=os.environ.get("CHROMA_COLLECTION_NAME", None),
                 host=os.environ.get("CHROMA_HOST", None),
                 port=int(os.environ.get("CHROMA_PORT", "8000"))
